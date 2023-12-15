@@ -1,78 +1,87 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:lab_7/users_model.dart'; // Import your User model classes here
 
 class FirstScreen extends StatefulWidget {
-  const FirstScreen({super.key});
+  const FirstScreen({Key? key}) : super(key: key);
 
   @override
   State<FirstScreen> createState() => _FirstScreenState();
 }
 
 class _FirstScreenState extends State<FirstScreen> {
-
-  //place the url
-  get url_ => 'https://randomuser.me/api/?results=20';
-
-  //save the users from url to users list
-  List<dynamic> users = [];
+  final String url_ = 'https://randomuser.me/api/?results=100';
+  Users users = Users(results: []);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor:const Color(0xffccd5f0) ,
       appBar: AppBar(
-        title: const Text('List of something'),
+        backgroundColor:const Color(0xffccd5f0) ,
+        title:  const Center(
+          child: Text('List of Hecked Users',  style: TextStyle(
+            fontFamily: 'fontik/fontik1.ttf',
+            fontSize: 22.0,
+            fontWeight: FontWeight.bold,color: Color(0xff350f9c)
+          ),),
+        ),
       ),
       body: ListView.builder(
-          itemCount: users.length,
-          itemBuilder: (context, index){
-            final user = users[index];
-            final first_name = user['name']['first'];
-            return ListTile(
-              title: Text(first_name),
-            );
-          }),
+        itemCount: users.results.length,
+        itemBuilder: (context, index) {
+          final Result user = users.results[index];
+          return ListTile(
+            leading: CircleAvatar(
+              backgroundImage: NetworkImage(user.picture.thumbnail),
+            ),
+            title: Text('${user.name.first} ${user.name.last}',style: const TextStyle(
+              fontFamily: 'fontik/fontik1.ttf',
+              fontSize: 18.0,
+              fontWeight: FontWeight.w800, color: Color(0xff350f9c)
+            ), ),
+            subtitle: Text(user.email,style: const TextStyle(
+              fontFamily: 'fontik',
+              fontWeight: FontWeight.normal,color: Color(0xff350f9c)
+            ),),
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xaa350f9c),
         onPressed: fetch,
-        ),
-      );
+        child: const Icon(Icons.system_update_alt, color: Color.fromRGBO(255, 255, 255, 1),),
+      ),
+    );
   }
 
   void fetch() async {
-    final uri = Uri.parse(url_);
-    final response = await http.get(uri);
+    final response = await http.get(Uri.parse(url_));
 
-    String body = '';
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      final List<dynamic> results = jsonData['results'];
 
-    //if successfull
-    if(response.statusCode == 200){
-      body = response.body;
-      print(body);
-      //decode json and save to jsonData
-      final json_data = jsonDecode(body);
-
-      //TODO: once you are trying to set up Model as List<Users> instead of List<dynamic>
-      //you should consider the steps performed in the lecture, where we:
-      /*
-      final results = json_data['results'] as List<dynamic>;
-      final converted = resutls.map((user) {
-        return User(
+      final List<Result> converted = results.map((user) {
+        return Result(
+          gender: user['gender'],
+          name: Name(
+            title: user['name']['title'],
+            first: user['name']['first'],
+            last: user['name']['last'],
+          ),
           email: user['email'],
-          gender: gender['gender'],
-          //and etc.. fulfill all the requred data members prepared in your Model
-          //Note that for some such as name and picture you will need slightly different approach
-          //as they can also be regarded as classes
+          phone: user['phone'],
+          picture: Picture(
+            thumbnail: user['picture']['thumbnail'],
+          ),
         );
-
       }).toList();
-       */
 
       setState(() {
-        users = json_data['results'];
+        users = Users(results: converted);
       });
-
     }
   }
 }
